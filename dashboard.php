@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -69,6 +70,7 @@ if (isset($_POST['add_transaksi'])) {
     $tahun = date("Y"); // Tahun (e.g., 2025)
 
     // Query untuk menyimpan transaksi baru
+    // Pastikan user_id yang disimpan sesuai dengan user yang login
     $sql_insert = "INSERT INTO transaksi (user_id, tipe_transaksi, pemasukan, pengeluaran, hari, tanggal, bulan, tahun, keterangan)
                    VALUES ('$nama_pengguna', '$tipe_transaksi', '$pemasukan', '$pengeluaran', '$hari', '$tanggal', '$bulan', '$tahun', '$keterangan')";
 
@@ -84,6 +86,7 @@ if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
 
     // Query untuk menghapus transaksi
+    // Pastikan hanya user yang login yang bisa menghapus transaksinya sendiri
     $sql_delete = "DELETE FROM transaksi WHERE id = '$delete_id' AND user_id = '$nama_pengguna'";
 
     if ($conn->query($sql_delete) === TRUE) {
@@ -101,10 +104,12 @@ if (isset($_POST['logout'])) {
 }
 
 // Query untuk mengambil semua transaksi
+// Pastikan hanya menampilkan transaksi milik user yang login
 $sql = "SELECT * FROM transaksi WHERE user_id = '$nama_pengguna'";
 $result = $conn->query($sql);
 
 // Hitung saldo, total pemasukan, dan total pengeluaran
+// Pastikan perhitungan hanya berdasarkan transaksi milik user yang login
 $sql = "SELECT * FROM transaksi WHERE user_id = '$nama_pengguna'";
 $result = $conn->query($sql);
 
@@ -118,9 +123,11 @@ if ($result->num_rows > 0) {
     }
 }
 
-$saldo = $total_pemasukan - $total_pengeluaran;
+$saldo =...
+$total_pemasukan - $total_pengeluaran;
 
-// Query untuk mengambil semua transaksi (untuk ditampilkan di tabel)
+/* Query untuk mengambil semua transaksi (untuk ditampilkan di tabel)
+Pastikan hanya menampilkan transaksi milik user yang login */
 $sql = "SELECT * FROM transaksi WHERE user_id = '$nama_pengguna'";
 $result = $conn->query($sql);
 
@@ -137,7 +144,7 @@ $result = $conn->query($sql);
             font-family: Arial, sans-serif;
         }
         .hamburger-menu {
-cursor: pointer;
+            cursor: pointer;
             position: absolute;
             top: 10px;
             left: 10px;
@@ -167,39 +174,61 @@ cursor: pointer;
     </script>
 </head>
 <body>
-    <div class="hamburger-menu" onclick="toggleMenu()">☰ Menu</div>
-    <div id="menu-content" class="menu-content">
+    <div class="hamburger-menu" onclick="toggleMenu()">
+        ☰ Menu
+    </div>
+    <div class="menu-content" id="menu-content">
         <form method="post">
             <input type="submit" name="logout" value="Logout">
-            <a href="delete.php"><button type="button">Hapus Akun</button></a>
+        </form>
+        <form method="post" action="hapus_akun.php">
+            <input type="submit" name="hapus_akun" value="Hapus Akun">
         </form>
     </div>
 
-    <h3>TABUNGAN, <?php echo htmlspecialchars($nama_pengguna); ?>!</h3>
+    <h1>Celengan Digital</h1>
+
+    <h3>Selamat datang, <?php echo htmlspecialchars($nama_pengguna); ?>!</h3>
 
     <div class="saldo-table">
-        <h3>Saldo: Rp <?php echo number_format($saldo, 2, ',', '.'); ?></h3>
+        <h2>Saldo</h2>
+        <table>
+            <tr>
+                <td>Saldo:</td>
+                <td>Rp <?php echo number_format($saldo, 2, ',', '.'); ?></td>
+            </tr>
+            <tr>
+                <td>Total Pemasukan:</td>
+                <td>Rp <?php echo number_format($total_pemasukan, 2, ',', '.'); ?></td>
+            </tr>
+            <tr>
+                <td>Total Pengeluaran:</td>
+                <td>Rp <?php echo number_format($total_pengeluaran, 2, ',', '.'); ?></td>
+            </tr>
+        </table>
     </div>
 
-    <div class="saldo-table">
-        <h3>Total Pemasukan: Rp <?php echo number_format($total_pemasukan, 2, ',', '.'); ?></h3>
-        <h3>Total Pengeluaran: Rp <?php echo number_format($total_pengeluaran, 2, ',', '.'); ?></h3>
-    </div>
-
-    <h4>Tambah Transaksi</h4>
+    <h2>Tambah Transaksi</h2>
     <form method="post">
-        Tipe Transaksi:
-        <select name="tipe_transaksi">
+        <label for="tipe_transaksi">Tipe Transaksi:</label>
+        <select name="tipe_transaksi" id="tipe_transaksi">
             <option value="Pemasukan">Pemasukan</option>
             <option value="Pengeluaran">Pengeluaran</option>
-        </select><br>
-        Pemasukan: <input type="number" name="pemasukan" value="0"><br>
-        Pengeluaran: <input type="number" name="pengeluaran" value="0"><br>
-        Keterangan: <input type="text" name="keterangan"><br>
+        </select><br><br>
+
+        <label for="pemasukan">Pemasukan:</label>
+        <input type="number" name="pemasukan" id="pemasukan" value="0"><br><br>
+
+        <label for="pengeluaran">Pengeluaran:</label>
+        <input type="number" name="pengeluaran" id="pengeluaran" value="0"><br><br>
+
+        <label for="keterangan">Keterangan:</label>
+        <input type="text" name="keterangan" id="keterangan"><br><br>
+
         <input type="submit" name="add_transaksi" value="Tambah Transaksi">
     </form>
 
-    <h4>Riwayat Transaksi</h4>
+    <h2>Riwayat Transaksi</h2>
     <table>
         <thead>
             <tr>
@@ -217,13 +246,14 @@ cursor: pointer;
             if ($result->num_rows > 0) {
                 while($row = $result->fetch_assoc()) {
                     echo "<tr>";
-                    echo "<td>" . $row["tipe_transaksi"] . "</td>";
-                    echo "<td>" . number_format($row["pemasukan"], 2, ',', '.') . "</td>";
-                    echo "<td>" . number_format($row["pengeluaran"], 2, ',', '.') . "</td>";
-                    echo "<td>" . $row["hari"] . "</td>";
-                    echo "<td>" . $row["tanggal"] . "</td>";
-                    echo "<td>" . $row["keterangan"] . "</td>";
-                    echo "<td><a href='dashboard.php?delete_id=" . $row["id"] . "'>Hapus</a></td>";
+                    echo "<td>".$row["tipe_transaksi"]."</td>";
+                    echo "<td>Rp ".number_format($row["pemasukan"], 2, ',', '.')."</td>";
+                    echo "<td>Rp ".number_format($row["pengeluaran"], 2, ',', '.')."</td>";
+                    echo...
+"<td>".$row["hari"]."</td>";
+                    echo "<td>".$row["tanggal"]."/".$row["bulan"]."/".$row["tahun"]."</td>";
+                    echo "<td>".$row["keterangan"]."</td>";
+                    echo "<td><a href='?delete_id=".$row["id"]."'>Hapus</a></td>";
                     echo "</tr>";
                 }
             } else {
